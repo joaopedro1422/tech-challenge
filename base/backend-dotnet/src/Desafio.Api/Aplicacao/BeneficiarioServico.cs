@@ -29,6 +29,37 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
                ?? throw new NaoEncontradoException("Beneficiario não encontrado para este ID");
     }
 
+    public async Task<ListaPaginada<BeneficiarioResponse>> ListarAsync(
+        int pagina, 
+        int tamanho, 
+        StatusBeneficiario? status, 
+        Guid? planoId, 
+        CancellationToken cancellationToken)
+    {
+        var query = db.Beneficiarios.AsNoTracking().AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(b => b.Status == status.Value);
+        }
+        if (planoId.HasValue)
+        {
+            query = query.Where(b => b.PlanoId == planoId.Value);
+        }
+
+        // criei para obter a quantidade total de registros validos para o filtro
+        var total = await query.CountAsync(cancellationToken);
+
+        var dados = await query
+            .OrderBy(b => b.DataCadastro) 
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToListAsync(cancellationToken);
+        var dadosRetorno = dados.Select(BeneficiarioResponse.De).ToList();
+
+        return new ListaPaginada<BeneficiarioResponse>(dadosRetorno, pagina, tamanho, total);
+    }
+
     private async Task VerificaCpfExistente(string cpf, CancellationToken cancellationToken)
     {
         var registro = await db.Beneficiarios
@@ -46,12 +77,15 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
     {
         try
         {
-            await planoServico.ObterAsync(planoId, cancellationToken);
+            var plano  = await planoServico.ObterAsync(planoId, cancellationToken);
+            if (plano.ExcluidoEm.HasValue)
+            {
+                throw new NaoProcessavelException("O plano informado não existe ou foi excluído");
+            }
         }
         catch (NaoEncontradoException)
         {
-            throw new NaoProcessavelException("O plano informado não existe ou foi excluído"
-        );
+            throw new NaoProcessavelException("O plano informado não existe ou foi excluído");
         }
     }
     

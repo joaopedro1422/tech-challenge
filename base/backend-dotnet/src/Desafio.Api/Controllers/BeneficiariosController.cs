@@ -36,10 +36,22 @@ public class BeneficiariosController(BeneficiarioServico beneficiarioServico) : 
     }
 
     [HttpGet]
-    public async Task<IActionResult> Listar()
+    [ProducesResponseType(typeof(ListaPaginada<BeneficiarioResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Listar(
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanho = 10,
+        [FromQuery] StatusBeneficiario? status = null,
+        [FromQuery] Guid? planoId = null,
+        CancellationToken cancellationToken = default)
     {
-   
+        if (pagina < 1 || tamanho < 1 || tamanho > 100)
+        {
+            throw new ValidacaoException("Página deve ser >= 1 e tamanho deve estar entre 1 e 100.");
+        }
 
-        return null;
+        var resultado = await beneficiarioServico.ListarAsync(pagina, tamanho, status, planoId, cancellationToken);
+
+        return Ok(resultado);
     }
 }
