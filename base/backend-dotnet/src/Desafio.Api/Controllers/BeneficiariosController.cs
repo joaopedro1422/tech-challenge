@@ -1,3 +1,5 @@
+using Desafio.Api.Api.Contratos;
+using Desafio.Api.Aplicacao;
 using Desafio.Api.Dominio;
 using Desafio.Api.Infraestrutura;
 using Microsoft.AspNetCore.Mvc;
@@ -8,52 +10,36 @@ namespace Desafio.Api.Controllers;
 [ApiController]
 [Route("beneficiarios")]
 [Produces("application/json")]
-public class BeneficiariosController : ControllerBase
+public class BeneficiariosController(BeneficiarioServico beneficiarioServico) : ControllerBase
 {
-    private readonly AppDbContext _db;
 
-    public BeneficiariosController(AppDbContext db)
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<PlanoResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Obter(Guid id, CancellationToken cancellationToken)
     {
-        _db = db;
+        var beneficiario = await beneficiarioServico.ObterPorIdAsync(id, cancellationToken);
+
+        return Ok(BeneficiarioResponse.De(beneficiario));
     }
-
+    
     [HttpPost]
-    public async Task<IActionResult> Criar([FromBody] Beneficiario beneficiario)
+    [ProducesResponseType<BeneficiarioResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Criar([FromBody] BeneficiarioRequest beneficiarioRequest, CancellationToken cancellationToken)
     {
-        if (beneficiario.Cpf.Length == 11)
-        {
-            // Mesmo modelo do PlanoServico: a garantia de unicidade é o índice único da
-            // tabela, e esta consulta prévia existe só para recusar o pedido antes de ele
-            // chegar no banco.
-            var existe = _db.Beneficiarios.Any(b => b.Cpf == beneficiario.Cpf);
+        var beneficiario = await beneficiarioServico.CriarAsync(beneficiarioRequest, cancellationToken);
 
-            if (!existe)
-            {
-                _db.Beneficiarios.Add(beneficiario);
-                await _db.SaveChangesAsync();
-
-                return Ok(beneficiario);
-            }
-
-            return BadRequest("CPF ja cadastrado");
-        }
-
-        return BadRequest("CPF invalido");
+        return CreatedAtAction(nameof(Obter), new { id = beneficiario.Id }, BeneficiarioResponse.De(beneficiario));
     }
 
     [HttpGet]
     public async Task<IActionResult> Listar()
     {
-        var lista = await _db.Beneficiarios.ToListAsync();
+   
 
-        // O plano é resolvido aqui, e não na consulta principal, porque o FindAsync usa o
-        // cache do contexto: a listagem continua fazendo uma única ida ao banco, qualquer
-        // que seja o tamanho da página.
-        foreach (var b in lista)
-        {
-            b.Plano = await _db.Planos.FindAsync(b.PlanoId);
-        }
-
-        return Ok(lista);
+        return null;
     }
 }
