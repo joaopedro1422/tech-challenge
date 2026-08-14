@@ -60,6 +60,7 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
         return new ListaPaginada<BeneficiarioResponse>(dadosRetorno, pagina, tamanho, total);
     }
 
+
     private async Task VerificaCpfExistente(string cpf, CancellationToken cancellationToken)
     {
         var registro = await db.Beneficiarios

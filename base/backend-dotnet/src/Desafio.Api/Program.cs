@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Desafio.Api.Api.Contratos;
 using Desafio.Api.Api.Middlewares;
 using Desafio.Api.Aplicacao;
@@ -61,7 +62,11 @@ app.MapControllers();
 await PrepararBancoAsync(app);
 
 app.Run();
-
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+    });
 static string NormalizarCampo(string chave) =>
     chave.StartsWith("$.", StringComparison.Ordinal) ? chave[2..] : chave;
 
