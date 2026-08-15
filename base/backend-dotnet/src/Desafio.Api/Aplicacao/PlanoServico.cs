@@ -25,6 +25,7 @@ public class PlanoServico(AppDbContext db)
 
     public async Task<Plano> CriarAsync(PlanoRequestDados dados, CancellationToken cancellationToken)
     {
+        
         var plano = new Plano(dados.Nome, dados.CodigoRegistroAns);
 
         await GarantirUnicidadeAsync(plano, cancellationToken);

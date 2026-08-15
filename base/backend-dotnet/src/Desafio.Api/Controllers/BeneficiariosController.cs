@@ -35,14 +35,31 @@ public class BeneficiariosController(BeneficiarioServico beneficiarioServico) : 
         return CreatedAtAction(nameof(Obter), new { id = beneficiario.Id }, BeneficiarioResponse.De(beneficiario));
     }
 
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType<PlanoResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Atualizar(
+        Guid id,
+        [FromBody] BeneficiarioAtualizacaoRequest dados,
+        CancellationToken cancellationToken)
+    {
+
+        var beneficiario = await beneficiarioServico.AtualizaBeneficiario(id, dados, cancellationToken);
+
+        return Ok(BeneficiarioResponse.De(beneficiario));
+    }
+
     [HttpGet]
     [ProducesResponseType(typeof(ListaPaginada<BeneficiarioResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErroResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Listar(
         [FromQuery] int pagina = 1,
-        [FromQuery] int tamanho = 10,
+        [FromQuery] int tamanho = 20,
         [FromQuery] StatusBeneficiario? status = null,
-        [FromQuery] Guid? planoId = null,
+        [FromQuery(Name = "plano_id")] Guid? planoId = null,
         CancellationToken cancellationToken = default)
     {
         if (pagina < 1 || tamanho < 1 || tamanho > 100)
@@ -53,5 +70,15 @@ public class BeneficiariosController(BeneficiarioServico beneficiarioServico) : 
         var resultado = await beneficiarioServico.ListarAsync(pagina, tamanho, status, planoId, cancellationToken);
 
         return Ok(resultado);
+    }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Excluir(Guid id, CancellationToken cancellationToken)
+    {
+        await beneficiarioServico.ExcluirAsync(id, cancellationToken);
+
+        return NoContent();
     }
 }

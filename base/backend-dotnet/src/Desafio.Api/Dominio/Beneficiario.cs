@@ -12,10 +12,14 @@ public enum StatusBeneficiario
 public class Beneficiario
 {
     public Beneficiario()
+    {}
+    public Beneficiario(string? nomeCompleto, string? cpf, DateOnly? dataNascimento, Guid? planoId)
     {
         Id = Guid.NewGuid();
         Status = StatusBeneficiario.ATIVO;
         DataCadastro = DateTime.UtcNow;
+
+        DefinirDados(nomeCompleto, cpf, dataNascimento, planoId);
     }
     public Guid Id { get; set; }
 
@@ -31,7 +35,10 @@ public class Beneficiario
 
     public Plano? Plano { get; set; }
 
-    public DateTime DataCadastro { get; set; }
+    public DateTime DataCadastro { get; private set; } = DateTime.UtcNow;
+    public DateTime? ExcluidoEm { get; private set; }
+
+    public void Excluir() => ExcluidoEm = DateTime.UtcNow;
 
     public void DefinirDados(string? nomeCompleto, string? cpf, DateOnly? dataNascimento, Guid? planoId)
     {
@@ -74,6 +81,10 @@ public class Beneficiario
         {
             throw new ValidacaoException("Dados do beneficiário inválidos", detalhes);
         }
+        NomeCompleto = nomeCompleto;
+        Cpf = cpf;
+        DataNascimento = dataNascimento.Value;
+        PlanoId = planoId.Value;
     }
     //Algoritmo oficial do ministério da Fazenda
     private static bool ValidarCpf(string? cpf)

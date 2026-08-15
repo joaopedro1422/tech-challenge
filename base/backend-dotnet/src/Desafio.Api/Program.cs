@@ -26,11 +26,16 @@ builder.Services.AddCors(opcoes => opcoes.AddPolicy(
         .WithOrigins("http://localhost:4200")
         .AllowAnyHeader()
         .AllowAnyMethod()));
+  
+builder.Services.AddScoped<BeneficiarioServico>();
 
 builder.Services
     .AddControllers()
-    .AddJsonOptions(opcoes => JsonPadrao.Aplicar(opcoes.JsonSerializerOptions));
-
+    .AddJsonOptions(opcoes => 
+    {
+        JsonPadrao.Aplicar(opcoes.JsonSerializerOptions);
+        opcoes.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+    });
 builder.Services.Configure<ApiBehaviorOptions>(opcoes =>
 {
     opcoes.InvalidModelStateResponseFactory = contexto =>
@@ -62,11 +67,7 @@ app.MapControllers();
 await PrepararBancoAsync(app);
 
 app.Run();
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
-    });
+
 static string NormalizarCampo(string chave) =>
     chave.StartsWith("$.", StringComparison.Ordinal) ? chave[2..] : chave;
 

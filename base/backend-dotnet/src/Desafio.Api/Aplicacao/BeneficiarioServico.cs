@@ -12,8 +12,7 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
 
     public async Task<Beneficiario> CriarAsync(BeneficiarioRequest dados, CancellationToken cancellationToken)
     {
-        var beneficiario = new Beneficiario();
-        beneficiario.DefinirDados(dados.NomeCompleto, dados.Cpf, dados.DataNascimento, dados.PlanoId);
+        var beneficiario = new Beneficiario(dados.NomeCompleto, dados.Cpf, dados.DataNascimento, dados.PlanoId);
 
         await VerificaCpfExistente(beneficiario.Cpf, cancellationToken);
         await VerificaPlanoExistente(beneficiario.PlanoId, cancellationToken);
@@ -25,8 +24,9 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
     }
     public async Task<Beneficiario> ObterPorIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await db.Beneficiarios.FirstOrDefaultAsync(b => b.Id == id, cancellationToken)
-               ?? throw new NaoEncontradoException("Beneficiario não encontrado para este ID");
+        return await db.Beneficiarios.Include(b => b.Plano) 
+                    .FirstOrDefaultAsync(b => b.Id == id && !b.ExcluidoEm.HasValue, cancellationToken)
+                    ?? throw new NaoEncontradoException("Beneficiario não encontrado para este ID");
     }
 
     public async Task<ListaPaginada<BeneficiarioResponse>> ListarAsync(
@@ -36,7 +36,7 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
         Guid? planoId, 
         CancellationToken cancellationToken)
     {
-        var query = db.Beneficiarios.AsNoTracking().AsQueryable();
+        var query = db.Beneficiarios.AsNoTracking().Where(b => !b.ExcluidoEm.HasValue);
 
         if (status.HasValue)
         {
@@ -46,11 +46,13 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
         {
             query = query.Where(b => b.PlanoId == planoId.Value);
         }
+        
 
-        // criei para obter a quantidade total de registros validos para o filtro
+        // obter a quantidade total de registros validos para o filtro
         var total = await query.CountAsync(cancellationToken);
 
         var dados = await query
+            .Include(b => b.Plano) 
             .OrderBy(b => b.DataCadastro) 
             .Skip((pagina - 1) * tamanho)
             .Take(tamanho)
@@ -60,7 +62,52 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
         return new ListaPaginada<BeneficiarioResponse>(dadosRetorno, pagina, tamanho, total);
     }
 
+    public async Task<Beneficiario> AtualizaBeneficiario(Guid id, BeneficiarioAtualizacaoRequest dados, CancellationToken cancellationToken)
+    {
+        var beneficiario = await ObterPorIdAsync(id, cancellationToken);
 
+        if (!Enum.TryParse<StatusBeneficiario>(dados.Status, ignoreCase: true, out var novoStatus))
+        {
+            throw new ValidacaoException("Status informado é inválido.");
+        }
+
+        if (beneficiario.Status == StatusBeneficiario.INATIVO)
+        {
+            bool alterouDadosCadastrais = 
+                beneficiario.NomeCompleto != dados.NomeCompleto ||
+                (dados.DataNascimento.HasValue && beneficiario.DataNascimento != dados.DataNascimento.Value) ||
+                (dados.PlanoId.HasValue && beneficiario.PlanoId != dados.PlanoId.Value);
+
+            if (alterouDadosCadastrais)
+            {
+                throw new ConflitoException("Beneficiários inativos não podem ter seus dados cadastrais alterados.");
+            }
+        }
+        if (dados.PlanoId.HasValue && dados.PlanoId.Value != beneficiario.PlanoId)
+        {
+            await VerificaPlanoExistente(dados.PlanoId.Value, cancellationToken);
+            beneficiario.PlanoId = dados.PlanoId.Value;
+        }
+
+        beneficiario.NomeCompleto = dados.NomeCompleto;
+        beneficiario.Status = novoStatus;
+
+        if (dados.DataNascimento.HasValue)
+        {
+            beneficiario.DataNascimento = dados.DataNascimento.Value;
+        }
+
+        await SalvarAsync(cancellationToken);
+        return beneficiario;
+    }
+
+    public async Task ExcluirAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var beneficiario = await ObterPorIdAsync(id, cancellationToken);
+
+        beneficiario.Excluir();
+        await SalvarAsync(cancellationToken);
+    }
     private async Task VerificaCpfExistente(string cpf, CancellationToken cancellationToken)
     {
         var registro = await db.Beneficiarios
