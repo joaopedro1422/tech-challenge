@@ -226,19 +226,119 @@ public class BeneficiariosTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-public async Task Atualizar_dados_de_beneficiario_inativo_deve_devolver_409()
-{
-    var beneficiario = (await fixture.SemearBeneficiariosAsync(
-        1, Planos.Bronze, "INATIVO", 500)).Single();
-
-    var resposta = await Client.PutAsync($"/beneficiarios/{beneficiario.Id}", Http.Json(new
+    public async Task Atualizar_dados_de_beneficiario_inativo_deve_devolver_409()
     {
-        NomeCompleto = "Nome Corrigido do Inativo",
-        DataNascimento = "1990-05-12",
-        PlanoId = Planos.Bronze,
-        Status = "INATIVO"
-    }));
+        var beneficiario = (await fixture.SemearBeneficiariosAsync(
+            1, Planos.Bronze, "INATIVO", 500)).Single();
 
-    Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
-}
+        var resposta = await Client.PutAsync($"/beneficiarios/{beneficiario.Id}", Http.Json(new
+        {
+            NomeCompleto = "Nome Corrigido do Inativo",
+            DataNascimento = "1990-05-12",
+            PlanoId = Planos.Bronze,
+            Status = "INATIVO"
+        }));
+
+        Assert.Equal(HttpStatusCode.Conflict, resposta.StatusCode);
+    }
+
+    // Novos Testes
+    [Fact]
+    public async Task Reativar_beneficiario_inativo_mantendo_dados_cadastrais_deve_devolver_200()
+    {
+        var beneficiario = (await fixture.SemearBeneficiariosAsync(
+            1, Planos.Bronze, "INATIVO", 500)).Single();
+
+        var resposta = await Client.PutAsync($"/beneficiarios/{beneficiario.Id}", Http.Json(new
+        {
+            NomeCompleto = beneficiario.NomeCompleto,
+            DataNascimento = beneficiario.DataNascimento.ToString("yyyy-MM-dd"),
+            PlanoId = beneficiario.PlanoId,
+            Status = "ATIVO"
+        }));
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+
+        var corpo = await resposta.CorpoAsync();
+        Assert.Equal("ATIVO", corpo.GetProperty("status").GetString());
+    }
+    [Fact]
+    public async Task Criar_com_data_nascimento_futura_deve_devolver_400()
+    {
+        var corpoInvalid = new
+        {
+            NomeCompleto = "Beneficiario do Futuro",
+            Cpf = "05322978082",
+            DataNascimento = DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd"),
+            PlanoId = Planos.Bronze
+        };
+
+        var resposta = await Client.PostAsync("/beneficiarios", Http.Json(corpoInvalid));
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Criar_apontando_para_plano_excluido_deve_devolver_422()
+    {
+        await Client.DeleteAsync($"/planos/{Planos.Bronze}");
+
+        var resposta = await Client.PostAsync(
+            "/beneficiarios", 
+            Http.Json(CorpoDeCriacao("06639930404", Planos.Bronze)));
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("/beneficiarios?pagina=0&tamanho=10")]
+    [InlineData("/beneficiarios?pagina=-1&tamanho=10")]
+    [InlineData("/beneficiarios?pagina=1&tamanho=0")]
+    [InlineData("/beneficiarios?pagina=1&tamanho=101")]
+    public async Task Listar_com_parametros_invalidos_deve_devolver_400(string url)
+    {
+        var resposta = await Client.GetAsync(url);
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Atualizar_enviando_novo_cpf_deve_ignorar_cpf_e_manter_o_original()
+    {
+        var beneficiario = (await fixture.SemearBeneficiariosAsync(1)).Single();
+        var cpfOriginal = beneficiario.Cpf;
+
+        var resposta = await Client.PutAsync($"/beneficiarios/{beneficiario.Id}", Http.Json(new
+        {
+            NomeCompleto = "Nome Atualizado",
+            Cpf = "99999999999", 
+            DataNascimento = "1990-05-12",
+            PlanoId = Planos.Bronze,
+            Status = "ATIVO"
+        }));
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+
+        var consulta = await (await Client.GetAsync($"/beneficiarios/{beneficiario.Id}")).CorpoAsync();
+        Assert.Equal(cpfOriginal, consulta.GetProperty("cpf").GetString());
+    }
+    [Fact]
+    public async Task Atualizar_ou_excluir_beneficiario_ja_excluido_deve_devolver_404()
+    {
+        var beneficiario = (await fixture.SemearBeneficiariosAsync(1)).Single();
+
+        await Client.DeleteAsync($"/beneficiarios/{beneficiario.Id}");
+
+        var respostaPut = await Client.PutAsync($"/beneficiarios/{beneficiario.Id}", Http.Json(new
+        {
+            NomeCompleto = "Tentativa de Atualizar Deletado",
+            DataNascimento = "1990-05-12",
+            PlanoId = Planos.Bronze,
+            Status = "ATIVO"
+        }));
+        Assert.Equal(HttpStatusCode.NotFound, respostaPut.StatusCode);
+
+        var respostaDelete = await Client.DeleteAsync($"/beneficiarios/{beneficiario.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, respostaDelete.StatusCode);
+    }
 }
