@@ -1,0 +1,127 @@
+.modal-dialog {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0;
+  width: 100%;
+  max-width: 450px;
+  background: #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.btn-fechar {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.field input {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+}
+.select-field {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+  background-color: #ffffff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.select-field:focus {
+    border-color: #475569;
+}
+.field input:focus {
+  border-color: #475569;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.103);
+}
+
+.erro {
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+h2{
+  font-weight: bold !important;
+  font-size: 18px !important; 
+}
+.mat-mdc-dialog-container .mat-mdc-dialog-title {
+  font-weight: bold !important;
+  font-size: 1.2rem !important; 
+}
+.container-buttons{
+  display: flex;
+  gap: 15px;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btn-cancelar {
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.btn-salvar {
+  padding: 8px 18px;
+  background-color: #0b8837;
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.btn-salvar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

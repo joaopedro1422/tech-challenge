@@ -1,0 +1,53 @@
+<h2 mat-dialog-title><i class="fa-solid fa-user"></i> Novo Beneficiário</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="modal-body">
+    <div class="field">
+      <label>Nome Completo *</label>
+      <input type="text" formControlName="nomeCompleto" placeholder="Digite o nome" />
+    </div>
+
+    <div class="field">
+      <label>CPF *</label>
+      <input type="text" formControlName="cpf" maxLength="11" />
+    </div>
+
+    <div class="field">
+      <label>Data de Nascimento *</label>
+      <input type="date" formControlName="dataNascimento" />
+    </div>
+
+    <div class="field">
+      <label>Plano *</label>
+      <select formControlName="planoId" class="select-field">
+        <option value="" disabled selected>Selecione um plano...</option>
+        @for (plano of planos(); track plano.id) {
+          <option [value]="plano.id">
+            {{ plano.nome }}
+          </option>
+        }
+      </select>
+      <span> </span>
+      @if (form.get('planoId')?.touched && form.get('planoId')?.invalid) {
+        <span class="erro">A seleção do plano é obrigatória.</span>
+      }
+    </div>
+
+    @if (erro()) {
+      <span class="erro">{{ erro() }}</span>
+    }
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <div class="container-buttons">
+    <button type="button" class="btn-cancelar" (click)="fechar()">Cancelar</button>
+    <button type="submit" class="btn-salvar" (click)="salvar()" [disabled]="form.invalid || carregando()">
+    @if (carregando()) {
+        <i class="fa-solid fa-spinner fa-spin"></i> Salvando...
+    } @else {
+        <i class="fa-solid fa-floppy-disk"></i> Salvar
+    }
+    </button>
+  </div>
+</mat-dialog-actions>

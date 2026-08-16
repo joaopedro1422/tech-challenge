@@ -1,0 +1,62 @@
+<section class="cartao">
+  <header class="cabecalho">
+    <h2><i class="fa-solid fa-users"></i> Beneficiários</h2>
+    <button type="button" class="btn-cadastrar" (click)="abrirModalCadastro()" [disabled]="carregando()"><i class="fa-solid fa-plus"></i> Cadastrar</button>
+  </header>
+
+  @if (carregando()) {
+    <p class="aviso">Carregando beneficiários...</p>
+  } @else if (erro()) {
+    <p class="aviso erro">{{ erro() }}</p>
+  } @else if (beneficiarios().length === 0) {
+    <p class="aviso">Nenhum beneficiário cadastrado.</p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>CPF</th>
+          <th>Data de Nascimento</th>
+          <th>Situação</th>
+          <th>Plano</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (beneficiario of beneficiarios(); track beneficiario.id) {
+          <tr>
+            <td>{{ beneficiario.nomeCompleto }}</td>
+            <td>{{ beneficiario.cpf }}</td>
+            <td>{{ beneficiario.dataNascimento }}</td>
+            <td>{{ beneficiario.status }}</td>
+            <td>{{ beneficiario.nomePlano }}</td>
+            <td class="col-acoes">
+              <div class="menu-container">
+                <button 
+                  type="button" 
+                  class="btn-acoes" 
+                  (click)="toggleMenu(beneficiario.id!, $event)"
+                  title="Ações">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+
+                @if (menuAbertoId() === beneficiario.id) {
+                  <div class="dropdown-menu">
+                    <button type="button" (click)="editar(beneficiario)">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                      <span>Editar</span>
+                    </button>
+                    <button type="button" class="btn-excluir" (click)="excluir(beneficiario.id!)">
+                      <i class="fa-solid fa-trash-can"></i>
+                      <span>Excluir</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

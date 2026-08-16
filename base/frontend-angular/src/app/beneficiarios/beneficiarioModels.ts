@@ -6,6 +6,7 @@ export interface Beneficiario {
   cpf: string;
   dataNascimento: string; 
   planoId: string;
+  nomePlano : string,
   status: StatusBeneficiario;
   dataCadastro?: string;
 }
@@ -17,9 +18,22 @@ export interface BeneficiarioCriacaoRequest{
   planoId: string;
 }
 
+export interface ListaPaginadaBeneficiarios{
+  dados: Beneficiario[];
+  pagina: number;
+  tamanho: number;
+  total: number;
+}
+
 export interface BeneficiarioAtualizacaoRequest{
   nomeCompleto: string;
   status: StatusBeneficiario;
   dataNascimento: string;
   planoId: string;
+}
+export interface BeneficiarioFiltro {
+  pagina?: number;
+  tamanho?: number;
+  status?: StatusBeneficiario;
+  planoId?: string;
 }

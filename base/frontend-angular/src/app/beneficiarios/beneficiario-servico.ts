@@ -1,12 +1,39 @@
-import { HttpClient } from "@angular/common/http";
-import { Beneficiario, BeneficiarioCriacaoRequest } from "./beneficiarioModels";
+import { HttpClient, HttpParams } from "@angular/common/http";
+import { Beneficiario, BeneficiarioCriacaoRequest, BeneficiarioFiltro, ListaPaginadaBeneficiarios } from "./beneficiarioModels";
 import { map, Observable } from "rxjs";
+import { Injectable } from "@angular/core";
 
-export class BeneficiarioService {
-    private readonly apiUrl = 'http://localhost:5000/beneficiarios';
+@Injectable({
+  providedIn: 'root'
+})
+export class BeneficiarioServico {
+    private readonly apiUrl = 'http://localhost:9999/beneficiarios';
     constructor(private http: HttpClient) {}
-    listar(): Observable<Beneficiario[]> {
-        return this.http.get<any[]>(this.apiUrl).pipe(map(lista => lista.map(item => this.mapearParaFrontend(item))));
+    listar(filtro?: BeneficiarioFiltro): Observable<ListaPaginadaBeneficiarios> {
+        let params = new HttpParams();
+
+        const pagina = filtro?.pagina ?? 1;
+        const tamanho = filtro?.tamanho ?? 20;
+
+        params = params.set('pagina', pagina.toString());
+        params = params.set('tamanho', tamanho.toString());
+
+        if (filtro?.status) {
+        params = params.set('status', filtro.status);
+        }
+
+        if (filtro?.planoId) {
+        params = params.set('plano_id', filtro.planoId);
+        }
+
+        return this.http.get<any>(this.apiUrl, { params }).pipe(
+        map(res => ({
+            dados: res.dados ? res.dados.map((item: any) => this.mapearParaFrontend(item)) : [],
+            pagina: res.pagina,
+            tamanho: res.tamanho,
+            total: res.total
+        }))
+        );
     }
 
     obterPorId(id: string): Observable<Beneficiario> {
@@ -31,6 +58,7 @@ export class BeneficiarioService {
         id: res.id,
         nomeCompleto: res.nome_completo,
         cpf: res.cpf,
+        nomePlano: res.nome_plano,
         dataNascimento: res.data_nascimento,
         planoId: res.plano_id,
         status: res.status,
