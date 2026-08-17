@@ -71,7 +71,7 @@ tbody tr:nth-child(even) {
 }
 
 tbody tr:hover {
-  background-color: #f0f0f0;
+  background-color: #f7f7f7;
 }
 th {
   font-size: 0.85rem;
@@ -91,7 +91,22 @@ tbody td {
   --mdc-snackbar-supporting-text-color: #ffffff !important; 
   --mat-snack-bar-button-color: #ffffff !important; 
 }
+.cdk-overlay-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+.cdk-overlay-container {
+  position: fixed;
+  z-index: 9999;
+}
 
+.cdk-overlay-pane {
+  max-width: none !important;
+}
+.cdk-overlay-pane {
+  box-sizing: border-box !important;
+}
 /* Força a cor do texto e fundo diretamente nas tags internas caso o MDC sobrescreva */
 .toast-sucesso .mdc-snackbar__surface {
   background-color: #16a34a !important;

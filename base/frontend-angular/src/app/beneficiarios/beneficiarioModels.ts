@@ -34,6 +34,6 @@ export interface BeneficiarioAtualizacaoRequest{
 export interface BeneficiarioFiltro {
   pagina?: number;
   tamanho?: number;
-  status?: StatusBeneficiario;
-  planoId?: string;
+  status?: string | null;
+  planoId?: string | null;
 }

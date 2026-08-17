@@ -5,7 +5,7 @@
   width: 100%;
   max-width: 450px;
   background: #ffffff;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.151);
 }
 
 .modal-dialog::backdrop {
@@ -114,7 +114,7 @@ h2{
 
 .btn-salvar {
   padding: 8px 18px;
-  background-color: #0b8837;
+   background-color: #4ea343;
   border: none;
   border-radius: 6px;
   color: #ffffff;

@@ -33,8 +33,7 @@ export class ModalCadastro {
   protected carregarPlanos(): void {
     this.erro.set(null);
 
-    this.planoService.listar()
-      .subscribe({
+    this.planoService.listar().subscribe({
         next: (planos) => {
           this.planos.set(planos);
         },

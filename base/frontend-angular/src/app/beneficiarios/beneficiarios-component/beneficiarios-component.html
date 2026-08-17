@@ -1,15 +1,50 @@
+<div class="container-button-cadastro">
+  <button type="button" class="btn-cadastrar" (click)="abrirModalCadastro()" [disabled]="carregando()"><i class="fa-solid fa-plus"></i> Cadastrar Beneficiário</button>
+</div>
 <section class="cartao">
-  <header class="cabecalho">
-    <h2><i class="fa-solid fa-users"></i> Beneficiários</h2>
-    <button type="button" class="btn-cadastrar" (click)="abrirModalCadastro()" [disabled]="carregando()"><i class="fa-solid fa-plus"></i> Cadastrar</button>
-  </header>
+ <header class="cabecalho">
+  <h2><i class="fa-solid fa-users"></i> Beneficiários</h2>
+
+  <div class="filtros">
+    <mat-form-field  class="filtro-material">
+      <mat-label>Status</mat-label>
+      <mat-select [formControl]="statusFilterControl">
+        <mat-option value="">Todos</mat-option>
+        <mat-option value="ATIVO">Ativo</mat-option>
+        <mat-option value="INATIVO">Inativo</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field  class="filtro-material">
+      <mat-label>Plano</mat-label>
+      <mat-select [formControl]="planoFilterControl">
+        <mat-option value="">Todos</mat-option>
+        @for (plano of planos(); track plano.id) {
+          <mat-option [value]="plano.id">{{ plano.nome }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <button type="button" class="btn-recarregar" (click)="recarregar()"  title="Recarregar">
+      <i class="fa-solid fa-search"></i> Buscar
+    </button>
+  </div>
+</header>
 
   @if (carregando()) {
     <p class="aviso">Carregando beneficiários...</p>
   } @else if (erro()) {
     <p class="aviso erro">{{ erro() }}</p>
   } @else if (beneficiarios().length === 0) {
-    <p class="aviso">Nenhum beneficiário cadastrado.</p>
+    <div class="empty-state">
+      <div class="empty-state-icon">
+        <i class="fa-solid fa-user-slash"></i>
+      </div>
+      <h3 class="empty-state-title">Nenhum beneficiário encontrado</h3>
+      <p class="empty-state-description">
+        Não encontramos nenhum registro para os filtros selecionados. 
+      </p>
+    </div>
   } @else {
     <table>
       <thead>
@@ -42,11 +77,11 @@
 
                 @if (menuAbertoId() === beneficiario.id) {
                   <div class="dropdown-menu">
-                    <button type="button" (click)="editar(beneficiario)">
+                    <button type="button" (click)="editarBeneficiario(beneficiario)">
                       <i class="fa-solid fa-pen-to-square"></i>
                       <span>Editar</span>
                     </button>
-                    <button type="button" class="btn-excluir" (click)="excluir(beneficiario.id!)">
+                    <button type="button" class="btn-excluir" (click)="excluirBeneficiario(beneficiario)">
                       <i class="fa-solid fa-trash-can"></i>
                       <span>Excluir</span>
                     </button>
@@ -58,5 +93,13 @@
         }
       </tbody>
     </table>
+    <mat-paginator
+      [length]="totalRegistros()"
+      [pageSize]="tamanhoPagina()"
+      [pageIndex]="paginaAtual() - 1"
+      [pageSizeOptions]="[5, 10, 20, 50]"
+      (page)="aoMudarPagina($event)"
+      aria-label="Selecione a página">
+    </mat-paginator>
   }
 </section>

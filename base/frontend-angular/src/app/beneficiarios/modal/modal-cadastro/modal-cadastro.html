@@ -19,7 +19,7 @@
 
     <div class="field">
       <label>Plano *</label>
-      <select formControlName="planoId" class="select-field">
+      <select formControlName="planoId"  class="select-field">
         <option value="" disabled selected>Selecione um plano...</option>
         @for (plano of planos(); track plano.id) {
           <option [value]="plano.id">

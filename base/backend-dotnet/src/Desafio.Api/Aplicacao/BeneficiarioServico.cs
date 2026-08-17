@@ -89,7 +89,10 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
             beneficiario.PlanoId = dados.PlanoId.Value;
         }
 
-        beneficiario.NomeCompleto = dados.NomeCompleto;
+        if (!string.IsNullOrWhiteSpace(dados.NomeCompleto))
+        {
+            beneficiario.NomeCompleto = dados.NomeCompleto;
+        }
         beneficiario.Status = novoStatus;
 
         if (dados.DataNascimento.HasValue)

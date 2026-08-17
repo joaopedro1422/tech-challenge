@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { Beneficiario, BeneficiarioCriacaoRequest, BeneficiarioFiltro, ListaPaginadaBeneficiarios } from "./beneficiarioModels";
+import { Beneficiario, BeneficiarioAtualizacaoRequest, BeneficiarioCriacaoRequest, BeneficiarioFiltro, ListaPaginadaBeneficiarios } from "./beneficiarioModels";
 import { map, Observable } from "rxjs";
 import { Injectable } from "@angular/core";
 
@@ -36,6 +36,10 @@ export class BeneficiarioServico {
         );
     }
 
+    atualizar(id: string, dados: BeneficiarioAtualizacaoRequest): Observable<Beneficiario>{
+        return this.http.put<any>(`${this.apiUrl}/${id}`, dados).pipe(map(res => this.mapearParaFrontend(res)));
+    }
+
     obterPorId(id: string): Observable<Beneficiario> {
         return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
         map(res => this.mapearParaFrontend(res))
@@ -50,6 +54,9 @@ export class BeneficiarioServico {
         plano_id: beneficiario.planoId
         };
         return this.http.post<any>(this.apiUrl, payload).pipe(map(res => this.mapearParaFrontend(res)));
+    }
+    deletar(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 
 
