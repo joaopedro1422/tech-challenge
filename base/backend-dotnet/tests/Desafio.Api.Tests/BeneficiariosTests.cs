@@ -75,6 +75,87 @@ public class BeneficiariosTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
     }
 
+    [Theory]
+    [InlineData("529.982.247-25")]
+    [InlineData("5299822472A")]
+    [InlineData("529982247 25")]
+    public async Task Criar_com_cpf_fora_do_formato_deve_devolver_400(string cpf)
+    {
+        var resposta = await Client.PostAsync(
+            "/beneficiarios",
+            Http.Json(CorpoDeCriacao(cpf)));
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("00000000000")]
+    [InlineData("11111111111")]
+    [InlineData("22222222222")]
+    [InlineData("33333333333")]
+    [InlineData("44444444444")]
+    [InlineData("55555555555")]
+    [InlineData("66666666666")]
+    [InlineData("77777777777")]
+    [InlineData("88888888888")]
+    [InlineData("99999999999")]
+    public async Task Criar_com_cpf_de_digitos_repetidos_deve_devolver_400(string cpf)
+    {
+        var resposta = await Client.PostAsync(
+            "/beneficiarios",
+            Http.Json(CorpoDeCriacao(cpf)));
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("1990")]
+    [InlineData("12-05-1990")]
+    [InlineData("1990/05/12")]
+    [InlineData("abc")]
+    public async Task Criar_com_data_nascimento_invalida_deve_devolver_400(string dataNascimento)
+    {
+        var resposta = await Client.PostAsync(
+            "/beneficiarios",
+            Http.Json(new
+            {
+                NomeCompleto = "Maria Aparecida da Silva",
+                Cpf = "52998224725",
+                DataNascimento = dataNascimento,
+                PlanoId = Planos.Bronze
+            }));
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Excluir_deve_remover_apenas_o_beneficiario_excluido_da_listagem()
+    {
+        var beneficiarios = await fixture.SemearBeneficiariosAsync(3);
+
+        var excluido = beneficiarios[1];
+
+        var resposta = await Client.DeleteAsync(
+            $"/beneficiarios/{excluido.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
+
+        var corpo = await (
+            await Client.GetAsync("/beneficiarios?tamanho=10")
+        ).CorpoAsync();
+
+        Assert.Equal(2, corpo.GetProperty("total").GetInt32());
+        Assert.Equal(2, corpo.GetProperty("dados").GetArrayLength());
+
+        var ids = corpo
+            .GetProperty("dados")
+            .EnumerateArray()
+            .Select(x => x.GetProperty("id").GetGuid())
+            .ToList();
+
+        Assert.DoesNotContain(excluido.Id, ids);
+    }
+
     [Fact]
     public async Task Criar_com_nome_cpf_e_data_invalidos_deve_devolver_400_com_3_detalhes_de_erro()
     {
@@ -260,7 +341,8 @@ public class BeneficiariosTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal("Joana Ribeiro Nunes", corpo.GetProperty("nome_completo").GetString());
         Assert.Equal(Planos.Ouro, corpo.GetProperty("plano_id").GetGuid());
     }
-      [Fact]
+    
+    [Fact]
     public async Task Atualizar_enviando_novo_cpf_deve_ignorar_cpf_e_manter_o_original()
     {
         var beneficiario = (await fixture.SemearBeneficiariosAsync(1)).Single();
@@ -279,6 +361,50 @@ public class BeneficiariosTests(ApiFixture fixture) : IAsyncLifetime
 
         var consulta = await (await Client.GetAsync($"/beneficiarios/{beneficiario.Id}")).CorpoAsync();
         Assert.Equal(cpfOriginal, consulta.GetProperty("cpf").GetString());
+    }
+
+    [Fact]
+    public async Task Atualizar_com_status_invalido_deve_devolver_400()
+    {
+        var beneficiario = (
+            await fixture.SemearBeneficiariosAsync(1)
+        ).Single();
+
+        var resposta = await Client.PutAsync(
+            $"/beneficiarios/{beneficiario.Id}",
+            Http.Json(new
+            {
+                NomeCompleto = beneficiario.NomeCompleto,
+                DataNascimento = beneficiario.DataNascimento.ToString("yyyy-MM-dd"),
+                PlanoId = beneficiario.PlanoId,
+                Status = "QUALQUER_COISA"
+            }));
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Atualizar_apontando_para_plano_excluido_deve_devolver_422()
+    {
+        var beneficiario = (
+            await fixture.SemearBeneficiariosAsync(1)
+        ).Single();
+
+        await Client.DeleteAsync($"/planos/{Planos.Ouro}");
+
+        var resposta = await Client.PutAsync(
+            $"/beneficiarios/{beneficiario.Id}",
+            Http.Json(new
+            {
+                NomeCompleto = beneficiario.NomeCompleto,
+                DataNascimento = beneficiario.DataNascimento.ToString("yyyy-MM-dd"),
+                PlanoId = Planos.Ouro,
+                Status = "ATIVO"
+            }));
+
+        Assert.Equal(
+            HttpStatusCode.UnprocessableEntity,
+            resposta.StatusCode);
     }
 
     [Fact]
@@ -509,6 +635,30 @@ public class BeneficiariosTests(ApiFixture fixture) : IAsyncLifetime
         var resposta = await Client.GetAsync(url);
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Listar_paginacao_deve_ser_estavel_sem_repetir_ou_perder_registros()
+    {
+        await fixture.SemearBeneficiariosAsync(25);
+
+        var ids = new List<Guid>();
+
+        for (var pagina = 1; pagina <= 3; pagina++)
+        {
+            var corpo = await (
+                await Client.GetAsync(
+                    $"/beneficiarios?pagina={pagina}&tamanho=10")
+            ).CorpoAsync();
+
+            ids.AddRange(
+                corpo.GetProperty("dados")
+                    .EnumerateArray()
+                    .Select(x => x.GetProperty("id").GetGuid()));
+        }
+
+        Assert.Equal(25, ids.Count);
+        Assert.Equal(25, ids.Distinct().Count());
     }
 
     [Fact]

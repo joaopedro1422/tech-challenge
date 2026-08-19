@@ -1,7 +1,7 @@
 <section class="cartao">
   <header class="cabecalho">
     <h2>Planos</h2>
-    <button type="button" (click)="carregar()" [disabled]="carregando()">Recarregar</button>
+    <button type="button" class="btn-recarregar" (click)="carregar(true)" [disabled]="carregando()"> <i class="fa-solid fa-rotate-right"></i>Recarregar</button>
   </header>
 
   @if (carregando()) {

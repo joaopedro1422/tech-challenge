@@ -1,6 +1,6 @@
 services:
   api:
-    image: robsoncalixto/desafio-4tech-api:base
+    image: joaopedro1422/desafio-4tech-api:1.0.0
     ports:
       - "9999:8080"
     environment:
@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: robsoncalixto/desafio-4tech-web:base
+    image: joaopedro1422/desafio-4tech-web:1.0.0
     ports:
       - "4200:80"
     depends_on:
