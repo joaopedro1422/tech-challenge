@@ -2,8 +2,8 @@
   "identificador": "joaopedro1422",
   "nome": "João Pedro Arruda",
   "email": "joaopedroarruda.dev@gmail.com",
-  "imagem_api": "joaopedro1422/desafio-4tech-api:base",
-  "imagem_web": "joaopedro1422/desafio-4tech-web:base",
+  "imagem_api": "joaopedro1422/desafio-4tech-api:1.0.0",
+  "imagem_web": "joaopedro1422/desafio-4tech-web:1.0.0",
   "stack": [
     "dotnet-10",
     "postgres-17",
