@@ -153,7 +153,10 @@
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.068);
   transition: all 0.2s ease-in-out;
 }
-
+.btn-recarregar:hover{
+  background-color: #ececec;
+    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.089);
+}
 .empty-state {
   display: flex;
   flex-direction: column;

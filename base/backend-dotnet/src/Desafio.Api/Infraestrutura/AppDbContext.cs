@@ -26,6 +26,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entidade.HasKey(b => b.Id);
             entidade.Property(b => b.NomeCompleto).HasMaxLength(120).IsRequired();
             entidade.Property(b => b.Cpf).HasMaxLength(11).IsRequired();
+            entidade.HasIndex(b => b.Cpf).IsUnique();
             entidade.Property(b => b.Status).HasConversion<string>().HasMaxLength(10).IsRequired();
             entidade.HasOne(b => b.Plano)
                 .WithMany()

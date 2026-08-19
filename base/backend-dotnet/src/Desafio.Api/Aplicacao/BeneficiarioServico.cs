@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace Desafio.Api.Aplicacao;
 
-public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
+public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico, ILogger<BeneficiarioServico> logger)
 {
     private const string CodigoViolacaoDeUnicidade = "23505";
 
@@ -19,25 +19,27 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
 
         db.Beneficiarios.Add(beneficiario);
         await SalvarAsync(cancellationToken);
-       
+        logger.LogInformation("Beneficiario {BeneficiarioId} criado com sucesso", beneficiario.Id);
         return beneficiario;
     }
     public async Task<Beneficiario> ObterPorIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await db.Beneficiarios.Include(b => b.Plano) 
-                    .FirstOrDefaultAsync(b => b.Id == id && !b.ExcluidoEm.HasValue, cancellationToken)
-                    ?? throw new NaoEncontradoException("Beneficiario não encontrado para este ID");
+        var beneficiario = await db.Beneficiarios.Include(b => b.Plano) 
+            .FirstOrDefaultAsync(b => b.Id == id && !b.ExcluidoEm.HasValue, cancellationToken);
+        if (beneficiario == null)
+        {
+            logger.LogWarning("Beneficiario {BeneficiarioId} nao foi encontrado", id);
+            throw new NaoEncontradoException("Beneficiario não encontrado para este ID");
+        }
+
+        return beneficiario;
     }
 
-    public async Task<ListaPaginada<BeneficiarioResponse>> ListarAsync(
-        int pagina, 
-        int tamanho, 
-        StatusBeneficiario? status, 
-        Guid? planoId, 
-        CancellationToken cancellationToken)
+    public async Task<ListaPaginada<BeneficiarioResponse>> ListarAtivosAsync(int pagina, int tamanho, StatusBeneficiario? status, Guid? planoId, CancellationToken cancellationToken)
     {
-        var query = db.Beneficiarios.AsNoTracking().Where(b => !b.ExcluidoEm.HasValue);
+        VerificaParametrosPaginacao(pagina, tamanho);
 
+        var query = db.Beneficiarios.AsNoTracking().Where(b => !b.ExcluidoEm.HasValue);
         if (status.HasValue)
         {
             query = query.Where(b => b.Status == status.Value);
@@ -47,13 +49,13 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
             query = query.Where(b => b.PlanoId == planoId.Value);
         }
         
-
         // obter a quantidade total de registros validos para o filtro
         var total = await query.CountAsync(cancellationToken);
 
         var dados = await query
             .Include(b => b.Plano) 
-            .OrderBy(b => b.DataCadastro) 
+            .OrderByDescending(b => b.DataCadastro) 
+            .ThenBy(b => b.Id) 
             .Skip((pagina - 1) * tamanho)
             .Take(tamanho)
             .ToListAsync(cancellationToken);
@@ -61,47 +63,62 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
 
         return new ListaPaginada<BeneficiarioResponse>(dadosRetorno, pagina, tamanho, total);
     }
-
+    
+    private void VerificaParametrosPaginacao(int pagina , int tamanho)
+    {
+        var detalhes = new List<DetalheErro>();
+        if (pagina < 1)
+        {
+            detalhes.Add(new DetalheErro("pagina", "invalido"));
+        }
+        if(tamanho is < 1 or > 100)
+        {
+            detalhes.Add(new DetalheErro("tamanho", "invalido"));
+        }
+        if (detalhes.Count > 0)
+        {
+            throw new ValidacaoException("Parâmetros de paginação inválidos", detalhes);
+        }
+    }
+    
     public async Task<Beneficiario> AtualizaBeneficiario(Guid id, BeneficiarioAtualizacaoRequest dados, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Iniciando atualizacao do beneficiario {BeneficiarioId}", id);
         var beneficiario = await ObterPorIdAsync(id, cancellationToken);
-
+   
         if (!Enum.TryParse<StatusBeneficiario>(dados.Status, ignoreCase: true, out var novoStatus))
         {
-            throw new ValidacaoException("Status informado é inválido.");
+            throw new ValidacaoException("O Status informado é invalido");
         }
+        
+        ValidarAlteracaoDeBeneficiarioInativo(beneficiario, novoStatus, dados);
 
-        if (beneficiario.Status == StatusBeneficiario.INATIVO)
+        if (dados.PlanoId.HasValue && dados.PlanoId.Value != beneficiario.PlanoId)
+        {
+            await VerificaPlanoExistente(dados.PlanoId.Value, cancellationToken);
+        }
+        beneficiario.DefinirDados(dados.NomeCompleto!.Trim(), beneficiario.Cpf, dados.DataNascimento, dados.PlanoId, dados.Status);
+          
+        await SalvarAsync(cancellationToken);
+        logger.LogInformation("Beneficiario {BeneficiarioId} atualizado com sucesso", id);
+        return beneficiario;
+    }
+
+    private void ValidarAlteracaoDeBeneficiarioInativo( Beneficiario dadosAntigos,StatusBeneficiario novoStatus, BeneficiarioAtualizacaoRequest dadosAtuais)
+    {
+        // Se o beneficiario está INATIVO e o corpo de atualização ainda o mantém INATIVO não pode haver mudanças. Caso o corpo traga status Ativo, não executa nada abaixo
+        if (dadosAntigos.Status == StatusBeneficiario.INATIVO && novoStatus == StatusBeneficiario.INATIVO )
         {
             bool alterouDadosCadastrais = 
-                beneficiario.NomeCompleto != dados.NomeCompleto ||
-                (dados.DataNascimento.HasValue && beneficiario.DataNascimento != dados.DataNascimento.Value) ||
-                (dados.PlanoId.HasValue && beneficiario.PlanoId != dados.PlanoId.Value);
+                dadosAntigos.NomeCompleto != dadosAtuais.NomeCompleto ||
+                (dadosAtuais.DataNascimento.HasValue && dadosAntigos.DataNascimento != dadosAtuais.DataNascimento.Value) ||
+                (dadosAtuais.PlanoId.HasValue && dadosAntigos.PlanoId != dadosAtuais.PlanoId.Value);
 
-            if (alterouDadosCadastrais)
+            if (alterouDadosCadastrais )
             {
                 throw new ConflitoException("Beneficiários inativos não podem ter seus dados cadastrais alterados.");
             }
         }
-        if (dados.PlanoId.HasValue && dados.PlanoId.Value != beneficiario.PlanoId)
-        {
-            await VerificaPlanoExistente(dados.PlanoId.Value, cancellationToken);
-            beneficiario.PlanoId = dados.PlanoId.Value;
-        }
-
-        if (!string.IsNullOrWhiteSpace(dados.NomeCompleto))
-        {
-            beneficiario.NomeCompleto = dados.NomeCompleto;
-        }
-        beneficiario.Status = novoStatus;
-
-        if (dados.DataNascimento.HasValue)
-        {
-            beneficiario.DataNascimento = dados.DataNascimento.Value;
-        }
-
-        await SalvarAsync(cancellationToken);
-        return beneficiario;
     }
 
     public async Task ExcluirAsync(Guid id, CancellationToken cancellationToken)
@@ -110,7 +127,9 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
 
         beneficiario.Excluir();
         await SalvarAsync(cancellationToken);
+        logger.LogInformation("Beneficiario {BeneficiarioId} excluído com sucesso", id);
     }
+
     private async Task VerificaCpfExistente(string cpf, CancellationToken cancellationToken)
     {
         var registro = await db.Beneficiarios
@@ -120,6 +139,7 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
             .FirstOrDefaultAsync(cancellationToken);
         if(registro != null)
         {
+            logger.LogWarning("Conflito de duplicidade detectado para o CPF {cpf}", cpf);
             throw new ConflitoException("Já existe um Beneficiário com o CPF informado"); 
         }
     }
@@ -136,6 +156,7 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
         }
         catch (NaoEncontradoException)
         {
+            logger.LogWarning("Plano {PlanoId} nao foi encontrado", planoId);
             throw new NaoProcessavelException("O plano informado não existe ou foi excluído");
         }
     }
@@ -148,6 +169,7 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico)
         }
         catch (DbUpdateException excecao) when (EhViolacaoDeUnicidade(excecao))
         {
+            logger.LogError(excecao, "Violacao de constraint de unicidade de CPF ao salvar beneficiário");
             throw new ConflitoException("Já existe um Beneficiário com o CPF informado");
         }
     }

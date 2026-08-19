@@ -32,7 +32,9 @@
 </header>
 
   @if (carregando()) {
-    <p class="aviso">Carregando beneficiários...</p>
+    <div class="empty-state">
+          <i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i>
+    </div>
   } @else if (erro()) {
     <p class="aviso erro">{{ erro() }}</p>
   } @else if (beneficiarios().length === 0) {
@@ -41,9 +43,7 @@
         <i class="fa-solid fa-user-slash"></i>
       </div>
       <h3 class="empty-state-title">Nenhum beneficiário encontrado</h3>
-      <p class="empty-state-description">
-        Não encontramos nenhum registro para os filtros selecionados. 
-      </p>
+
     </div>
   } @else {
     <table>
@@ -61,8 +61,8 @@
         @for (beneficiario of beneficiarios(); track beneficiario.id) {
           <tr>
             <td>{{ beneficiario.nomeCompleto }}</td>
-            <td>{{ beneficiario.cpf }}</td>
-            <td>{{ beneficiario.dataNascimento }}</td>
+            <td>{{ formatarCpf(beneficiario.cpf) }}</td>
+            <td>{{ formatarData(beneficiario.dataNascimento) }}</td>
             <td>{{ beneficiario.status }}</td>
             <td>{{ beneficiario.nomePlano }}</td>
             <td class="col-acoes">
@@ -97,7 +97,7 @@
       [length]="totalRegistros()"
       [pageSize]="tamanhoPagina()"
       [pageIndex]="paginaAtual() - 1"
-      [pageSizeOptions]="[5, 10, 20, 50]"
+      [pageSizeOptions]="[1,5, 10, 20, 50 ,100]"
       (page)="aoMudarPagina($event)"
       aria-label="Selecione a página">
     </mat-paginator>

@@ -11,36 +11,35 @@ public enum StatusBeneficiario
 
 public class Beneficiario
 {
-    public Beneficiario()
+    protected Beneficiario()
     {}
     public Beneficiario(string? nomeCompleto, string? cpf, DateOnly? dataNascimento, Guid? planoId)
     {
         Id = Guid.NewGuid();
-        Status = StatusBeneficiario.ATIVO;
         DataCadastro = DateTime.UtcNow;
 
-        DefinirDados(nomeCompleto, cpf, dataNascimento, planoId);
+        DefinirDados(nomeCompleto, cpf, dataNascimento, planoId, StatusBeneficiario.ATIVO.ToString());
     }
-    public Guid Id { get; set; }
+    public Guid Id { get;private set; }
 
-    public string NomeCompleto { get; set; } = null!;
+    public string NomeCompleto { get;private set; } = null!;
 
-    public string Cpf { get; set; } = null!;
+    public string Cpf { get;private set; } = null!;
 
-    public DateOnly DataNascimento { get; set; }
+    public DateOnly DataNascimento { get;private set; }
 
-    public StatusBeneficiario Status { get; set; }
+    public StatusBeneficiario Status { get;private set; }
 
-    public Guid PlanoId { get; set; }
+    public Guid PlanoId { get;private set; }
 
-    public Plano? Plano { get; set; }
+    public Plano? Plano { get; private set; }
 
     public DateTime DataCadastro { get; private set; } = DateTime.UtcNow;
     public DateTime? ExcluidoEm { get; private set; }
 
     public void Excluir() => ExcluidoEm = DateTime.UtcNow;
 
-    public void DefinirDados(string? nomeCompleto, string? cpf, DateOnly? dataNascimento, Guid? planoId)
+    public void DefinirDados(string? nomeCompleto, string? cpf, DateOnly? dataNascimento, Guid? planoId, string? status)
     {
         nomeCompleto = nomeCompleto?.Trim() ?? string.Empty;
         cpf = cpf?.Trim() ?? string.Empty;
@@ -76,6 +75,10 @@ public class Beneficiario
         {
             detalhes.Add(new DetalheErro("plano_id", "obrigatorio"));
         }
+        if (!Enum.TryParse<StatusBeneficiario>(status, ignoreCase: true, out var novoStatus))
+        {
+            detalhes.Add(new DetalheErro("status", "invalido"));
+        }
 
         if (detalhes.Count > 0)
         {
@@ -83,9 +86,11 @@ public class Beneficiario
         }
         NomeCompleto = nomeCompleto;
         Cpf = cpf;
-        DataNascimento = dataNascimento.Value;
-        PlanoId = planoId.Value;
+        DataNascimento = dataNascimento!.Value;
+        PlanoId = planoId!.Value;
+        Status = novoStatus;
     }
+
     //Algoritmo oficial do ministério da Fazenda
     private static bool ValidarCpf(string? cpf)
     {

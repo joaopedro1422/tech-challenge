@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Desafio.Api.Api.Contratos;
 using Desafio.Api.Api.Middlewares;
@@ -63,7 +64,21 @@ app.UseSwagger();
 app.UseSwaggerUI(opcoes => opcoes.RoutePrefix = "swagger");
 
 app.MapControllers();
+app.Use(async (context, next) =>
+{
+    var inicio = Stopwatch.GetTimestamp();
 
+    await next();
+    var tempoMs = Stopwatch.GetElapsedTime(inicio).TotalMilliseconds;
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation(
+        "HTTP {Method} {Path} respondeu {StatusCode} em {ElapsedMs:0.000}ms",
+        context.Request.Method,
+        context.Request.Path,
+        context.Response.StatusCode,
+        tempoMs
+    );
+});
 await PrepararBancoAsync(app);
 
 app.Run();

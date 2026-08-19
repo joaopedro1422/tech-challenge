@@ -33,7 +33,7 @@ export class BeneficiariosComponent {
   planoFilterControl = new FormControl('');
   private readonly dialog = inject(MatDialog);
   paginaAtual = signal<number>(1);
-  tamanhoPagina = signal<number>(20);
+  tamanhoPagina = signal<number>(10);
   totalRegistros = signal<number>(0);
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
@@ -123,6 +123,9 @@ export class BeneficiariosComponent {
 
     dialogRef.afterClosed().subscribe((confirmado: boolean) => {
       if (confirmado) {
+        if (this.beneficiarios().length === 1 && this.paginaAtual() > 1) {
+          this.paginaAtual.update(p => p - 1);
+        }
         this.executarExclusao(beneficiario.id!);
       }
     });
@@ -147,6 +150,32 @@ export class BeneficiariosComponent {
       }
     });
   }
+
+  formatarCpf(cpf: string): string {
+    if (!cpf) return '';
+    const apenasNumeros = cpf.replace(/\D/g, '');
+    
+    if (apenasNumeros.length !== 11) {
+      return cpf;
+    }
+
+    return apenasNumeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  }
+
+  formatarData(dataIso: string): string {
+    if (!dataIso) return '';
+    
+    const dataLimpa = dataIso.split('T')[0];
+    const partes = dataLimpa.split('-');
+
+    if (partes.length !== 3) {
+      return dataIso; 
+    }
+
+    const [ano, mes, dia] = partes;
+    return `${dia}/${mes}/${ano}`;
+  }
+
   excluir(id: string): void {
     this.menuAbertoId.set(null);
     console.log('Excluir ID:', id);

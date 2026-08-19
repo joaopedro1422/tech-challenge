@@ -53,6 +53,34 @@ export class ModalEdicao {
       });
     }
   }
+
+  formatarCpf(cpf: string): string {
+  if (!cpf) return '';
+  
+  const apenasNumeros = cpf.replace(/\D/g, '');
+  
+  if (apenasNumeros.length !== 11) {
+    return cpf; 
+  }
+
+  return apenasNumeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+
+formatarData(dataIso: string): string {
+  if (!dataIso) return '';
+
+  const dataLimpa = dataIso.split('T')[0];
+  const partes = dataLimpa.split('-');
+
+  if (partes.length !== 3) {
+    return dataIso; 
+  }
+
+  const [ano, mes, dia] = partes;
+  return `${dia}/${mes}/${ano}`;
+}
+
   salvar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

@@ -14,7 +14,7 @@
 
     <div class="field">
       <label>Data de Nascimento *</label>
-      <input type="date" formControlName="dataNascimento" />
+      <input type="date" [max]="hoje" formControlName="dataNascimento" />
     </div>
 
     <div class="field">

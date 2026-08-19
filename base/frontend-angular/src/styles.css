@@ -107,7 +107,7 @@ tbody td {
 .cdk-overlay-pane {
   box-sizing: border-box !important;
 }
-/* Força a cor do texto e fundo diretamente nas tags internas caso o MDC sobrescreva */
+
 .toast-sucesso .mdc-snackbar__surface {
   background-color: #16a34a !important;
 }

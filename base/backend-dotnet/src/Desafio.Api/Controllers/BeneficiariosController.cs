@@ -46,7 +46,6 @@ public class BeneficiariosController(BeneficiarioServico beneficiarioServico) : 
         [FromBody] BeneficiarioAtualizacaoRequest dados,
         CancellationToken cancellationToken)
     {
-
         var beneficiario = await beneficiarioServico.AtualizaBeneficiario(id, dados, cancellationToken);
 
         return Ok(BeneficiarioResponse.De(beneficiario));
@@ -57,17 +56,13 @@ public class BeneficiariosController(BeneficiarioServico beneficiarioServico) : 
     [ProducesResponseType(typeof(ErroResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Listar(
         [FromQuery] int pagina = 1,
-        [FromQuery] int tamanho = 20,
+        [FromQuery] int tamanho = 10,
         [FromQuery] StatusBeneficiario? status = null,
         [FromQuery(Name = "plano_id")] Guid? planoId = null,
         CancellationToken cancellationToken = default)
     {
-        if (pagina < 1 || tamanho < 1 || tamanho > 100)
-        {
-            throw new ValidacaoException("Página deve ser >= 1 e tamanho deve estar entre 1 e 100.");
-        }
 
-        var resultado = await beneficiarioServico.ListarAsync(pagina, tamanho, status, planoId, cancellationToken);
+        var resultado = await beneficiarioServico.ListarAtivosAsync(pagina, tamanho, status, planoId, cancellationToken);
 
         return Ok(resultado);
     }
