@@ -281,14 +281,14 @@ e o restante seguindo a mesma estilização.
 - Criação / Chamada dos modais de criação e edição.
 - Campos de filtragem por Planos e status + botão de busca.
 - Estrutura de cache em memória para listagem de Planos, utilizando `ShareReplay` para armazenar e flag booleana `refresh` para limpeza do cache e nova busca em `GET/Planos`
-
+- HTML em geral.
 - Sobre IA: Utilizo como aceleradora do desenvolvimento seguindo as decisões e direcionamentos definidos por mim. Ela foi utilizada como ferramenta auxiliar 
   para processos repetitivos, funções auxiliares de apoio ao que estou implementando, revisão de código e esclarecimento de dúvidas técnicas. Decisões arquiteturais e 
   implementação das principais regras de negócio permanecem sob minha responsabilidade.
 
 ### 3.4 O que ainda não domino
 
-Tenho domínio sobre as decisões e implementações realizadas por mim no desafio, além de experiência prévia com .NET e Angular em projetos corporativos.
+Tenho domínio sobre as decisões e implementações realizadas por mim no desafio - experiência prévia com .NET e Angular em projetos corporativos.
 Não domino em profundidade o funcionamento interno do EF Core relacionado às Migrations, mas consigo utilizar e tenho noção de que ele detecta mudanças em 
 relação ao estado anterior e gera a nova migration com as operações necessárias para refletir essas mudanças no banco de dados.
 
