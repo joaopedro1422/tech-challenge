@@ -91,7 +91,7 @@ public class Beneficiario
         Status = novoStatus;
     }
 
-    //Algoritmo oficial do ministério da Fazenda
+    //Função gerada por IA para verificar dígitos verificadores válidos e sequências repetidas
     private static bool ValidarCpf(string? cpf)
     {
         if (string.IsNullOrWhiteSpace(cpf))

@@ -170,19 +170,33 @@ boas práticas de arquitetura. Priorizei uma implementação orientada a reutili
   atualização quando o beneficiário está `Inativo` e o status enviado também é `Inativo`. Caso o status enviado seja `Ativo`, a reativação é permitida junto à atualização
   dos demais dados.
 
+**3. Problema conceitual na especificação sobre exclusão lógica de planos**
+
+- **A spec diz:** que um plano excluído logicamente não pode ser referenciado por novos beneficiários nem por atualizações, e que beneficiários que já apontavam para
+  o plano no momento da exclusão continuam válidos e vinculados a ele.
+- **Problema:** Se um beneficiário é vinculado ao plano X, e o plano X é excluído, o beneficiário não conseguiria receber nenhuma atualização de dados cadastrais mantendo 
+  o plano atual, já que este não passaria na verificação de plano presente na atualização de beneficiário (que protege contra planos inexistentes e excluídos). Isso 
+  implicaria em uma mudança de Plano forçada ao precisar realizar alterações cadastrais no beneficiário. 
+- **Decidi:** Apenas aplicar a funçao de verificação de plano existente/não-excluído no `PUT /Beneficiarios` caso o PlanoId recebido no novo corpo seja diferente do PlanoId 
+  atual do beneficiário.
+- **Resultado:** Caso este cenário aconteça, os dados cadastrais do beneficiário poderão ser alterados mesmo que o seu plano atual esteja excluído. 
+  Evitando uma alteração forçada de vínculo com o Plano.
+
+
 ### 2.4 Decisões técnicas
 #### API
 - **Domínio responsável pela verificação de entrada de dados:** Coloquei todos os setters como privados para garantir encapsulamento e tornei o método `DefinirDados` como
   a única forma de alterar os dados cadastrais na entidade. Implica em reutilização em outras partes da API de forma segura e consistente.
 - **Separação de responsabilidades no serviço:** Divisão das regras em funções privadas, nomeadas de forma clara de acordo com suas responsabilidades, facilitando leitura,
   manutenção e evolução reutilizável do código conforme crescimento de funcionalidades.
-- **DTOs de entrada e saída centralizados em `\Contratos\BeneficiarioContratos.cs`**, com estruturas definidas para cada tipo de operação (Criação, atualização, resposta). DTO de
-  paginação `ListaPaginada<T>` genérica para reutilização em outras partes do sistema (listagem de unidades, funcionarios e etc.).
+- **DTOs de entrada e saída centralizados em `\Contratos\BeneficiarioContratos.cs`**, com estruturas definidas para cada tipo de operação (Criação, atualização, resposta). DTO de paginação `ListaPaginada<T>` genérica para reutilização em outras partes do sistema (listagem de unidades, funcionarios e etc.).
 - **Nome do plano na listagem dos beneficiários:** Resposta de beneficiários contendo o nome do plano em sua estrutura, obtido por meio do relacionamento com a tabela de 
   Planos na própria consulta utilizando um JOIN e evitando o problema do N+1.
 - Registro de logs estruturados com `ILogger` para mapeamento de pilha.
 - **Sequência lógica de verificações na Atualização de beneficiário:** Status válido (Ativo ou Inativo) -> Tentativa de alteração de dados cadastrais com status inativo -> 
   Verificação de existência/não exclusão do plano informado -> Validação de dados no domínio `Beneficiario.cs`.
+- **Padronização do parseamento JSON em `snake_case`:** Configuração global do `PropertyNamingPolicy` em `Program.cs` para garantir que requisições e respostas considerem 
+  por padrão o snake case para parseamento. Por exemplo: `POST | exemplo_disso -> exemploDisso ` , `GET | exemploDisso -> exemplo_disso`. (Auxílio da IA para obter a função exata que configura este comportamento globalmente).
 - Utilização do `Postman` para testes manuais além dos testes implementados em `BeneficiarioTestes.cs`;
 
 #### Frontend
@@ -213,14 +227,14 @@ Nada. A implementação atende a todos os requisitos da `SPEC.md`; o resultado d
 
 ### 3.1 Ferramentas
 
-*Microsoft Copilot:* 
+*Microsoft Copilot (Desktop):* 
 - Aceleração do desenvolvimento com funções auxiliares específicas.
 - Explicação para compreensão de partes do código antigo. 
 - Apoio na revisão final do código com base na `SPEC.md`.
 - Apoio na implementação da verificação de dígitos verificadores válidos de CPF.
 - Revisão da cobertura de testes para os casos de borda e sugestão de novos casos pertinentes.
 - Sugestão da utilização de `Task.WhenAll` para executar requisições simultâneas no teste de concorrência do cadastro de CPF.
-
+- Resolução de problemas com o docker na minha máquina durante o desenvolvimento.
 - Estilização primária de alguns componentes do frontend com minha orientação. Ajustes finos feitos por mim.
 
 ### 3.2 Os 3 prompts que mais influenciaram o resultado
