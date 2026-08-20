@@ -25,7 +25,7 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico, ILo
     public async Task<Beneficiario> ObterPorIdAsync(Guid id, CancellationToken cancellationToken)
     {
         var beneficiario = await db.Beneficiarios.Include(b => b.Plano) 
-            .FirstOrDefaultAsync(b => b.Id == id && !b.ExcluidoEm.HasValue, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
         if (beneficiario == null)
         {
             logger.LogWarning("Beneficiario {BeneficiarioId} nao foi encontrado", id);
@@ -39,7 +39,7 @@ public class BeneficiarioServico(AppDbContext db, PlanoServico planoServico, ILo
     {
         VerificaParametrosPaginacao(pagina, tamanho);
 
-        var query = db.Beneficiarios.AsNoTracking().Where(b => !b.ExcluidoEm.HasValue);
+        var query = db.Beneficiarios.AsNoTracking().AsQueryable();
         if (status.HasValue)
         {
             query = query.Where(b => b.Status == status.Value);
