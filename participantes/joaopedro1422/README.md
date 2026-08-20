@@ -195,6 +195,7 @@ boas práticas de arquitetura. Priorizei uma implementação orientada a reutili
 - Registro de logs estruturados com `ILogger` para mapeamento de pilha.
 - **Sequência lógica de verificações na Atualização de beneficiário:** Status válido (Ativo ou Inativo) -> Tentativa de alteração de dados cadastrais com status inativo -> 
   Verificação de existência/não exclusão do plano informado -> Validação de dados no domínio `Beneficiario.cs`.
+- Garantia de não listagem de beneficiários excluídos logicamente através de filtro global em `AppDbContext.cs` por `entidade.HasQueryFilter(b => b.ExcluidoEm == null)`.
 - **Padronização do parseamento JSON em `snake_case`:** Configuração global do `PropertyNamingPolicy` em `Program.cs` para garantir que requisições e respostas considerem 
   por padrão o snake case para parseamento. Por exemplo: `POST | exemplo_disso -> exemploDisso ` , `GET | exemploDisso -> exemplo_disso`. (Auxílio da IA para obter a função exata que configura este comportamento globalmente).
 - Utilização do `Postman` para testes manuais além dos testes implementados em `BeneficiarioTestes.cs`;
