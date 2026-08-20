@@ -13,10 +13,15 @@ boas práticas de arquitetura. Priorizei uma implementação orientada a reutili
 - **DTOs de entrada e saída:** Contratos estruturais específicos para corpos de criação, atualização, filtragem e listagem (total, pagina, tamanho e dados).
 - **Separação de responsabilidades:** Orquestração HTTP via controller, regras de domínio reutilizáveis em `Beneficiario`, regras gerais de negócio + tratamento
   de erros em `BeneficiarioServico` e acesso ao Banco de dados em `AppDbContext`.
-- **Regras de negócio e de domínio:** implementação das validações previstas na SPEC.md, incluindo verificações de CPF, nome , data de nascimento, existência de 
-  plano, alteração de beneficiários INATIVOS, exclusão lógica com permânencia cadastral do CPF e tratamento de unicidade para requisições concorrentes com índice único.    
+- **Regras de negócio e de domínio previstas na SPEC:**
+  - Validação de CPF contra sequências de dígitos repetidos, dígitos não numéricos, tamanho (11) e dígitos verificadores válidos.
+  - Validação de data de nascimento contra datas futuras.
+  - Verificação de plano existente e não excluído logicamente.
+  - Bloqueio de alterações cadastrais para usuários INATIVOS.
+  - Exclusão lógica com permânencia cadastral do CPF.
+  - Tratamento de unicidade para requisições concorrentes com índice único no banco.    
 - **Listagem preparada para exibição:** Inclusão do nome do plano na listagem de beneficiários via `Eager Loading (.Include(b => b.Plano))`, realizando um 
-  JOIN direto na consulta paginada, entregando os dados prontos para exibição no cliente sem necessidade de adaptações adicionais.
+  JOIN direto na consulta paginada, entregando os dados prontos para exibição com controle de paginação no cliente sem necessidade de adaptações adicionais.
 - **Estruturação de erros e exceções**: resposta clara ao cliente com Mensagem + detalhamento relevante para utilização direta na interface.
 - **Logs estruturados:** registro de eventos e pontos críticos em formato estruturado, com informações como ID e resposta HTTP, visando indexação e rastreamento em 
   ferramentas de Observabilidade como Grafana e DataDog.
@@ -167,16 +172,16 @@ boas práticas de arquitetura. Priorizei uma implementação orientada a reutili
 
 ### 2.4 Decisões técnicas
 #### API
-- Domínio responsável pela verificação de entrada de dados: Coloquei todos os setters como privados para garantir encapsulamento e tornei o método `DefinirDados` como
+- **Domínio responsável pela verificação de entrada de dados:** Coloquei todos os setters como privados para garantir encapsulamento e tornei o método `DefinirDados` como
   a única forma de alterar os dados cadastrais na entidade. Implica em reutilização em outras partes da API de forma segura e consistente.
-- Separação de responsabilidades no serviço: Divisão das regras em funções privadas, nomeadas de forma clara de acordo com suas responsabilidades, facilitando leitura,
+- **Separação de responsabilidades no serviço:** Divisão das regras em funções privadas, nomeadas de forma clara de acordo com suas responsabilidades, facilitando leitura,
   manutenção e evolução reutilizável do código conforme crescimento de funcionalidades.
-- DTOs de entrada e saída centralizados em `\Contratos\BeneficiarioContratos.cs`, com estruturas definidas para cada tipo de operação (Criação, atualização, resposta). DTO de
+- **DTOs de entrada e saída centralizados em `\Contratos\BeneficiarioContratos.cs`**, com estruturas definidas para cada tipo de operação (Criação, atualização, resposta). DTO de
   paginação `ListaPaginada<T>` genérica para reutilização em outras partes do sistema (listagem de unidades, funcionarios e etc.).
-- Nome do plano na resposta dos beneficiários: Resposta de beneficiários contendo o nome do plano em sua estrutura, obtido por meio do relacionamento com a tabela de 
+- **Nome do plano na listagem dos beneficiários:** Resposta de beneficiários contendo o nome do plano em sua estrutura, obtido por meio do relacionamento com a tabela de 
   Planos na própria consulta utilizando um JOIN e evitando o problema do N+1.
-- Estruturação de erros detalhados seguindo o padrão existente em `Planos` e registro de Logs.
-- Sequência lógica de verificações na Atualização de beneficiário: Status válido (Ativo ou Inativo) -> Tentativa de alteração de dados cadastrais com status inativo -> 
+- Registro de logs estruturados com `ILogger` para mapeamento de pilha.
+- **Sequência lógica de verificações na Atualização de beneficiário:** Status válido (Ativo ou Inativo) -> Tentativa de alteração de dados cadastrais com status inativo -> 
   Verificação de existência/não exclusão do plano informado -> Validação de dados no domínio `Beneficiario.cs`.
 - Utilização do `Postman` para testes manuais além dos testes implementados em `BeneficiarioTestes.cs`;
 
@@ -188,13 +193,13 @@ boas práticas de arquitetura. Priorizei uma implementação orientada a reutili
 - Utilização da biblioteca `FontAwesome` para ícones de ações e Spinner indicador de carregamento.
 - Controle de paginação com `Angular Material Paginator`, componente padrão que simplifica a implementação e mantém o HTML mais enxuto.
 
-- **Cache compartilhado** dos planos no `PlanoServico`, utilizando `shareReplay(1)` para otimizar o consumo da API `GET/planos` pelo módulo de Beneficiários e futuros módulos 
+- **Cache compartilhado** dos planos no `PlanoServico`, utilizando `shareReplay(1)` para otimizar o consumo da API `GET/planos` e dispensar requisições repetitivas pelo módulo de Beneficiários e futuros módulos 
   do sistema em caso de projeto real. A primeira chamada à API `GET/planos` armazena o resultado em cache em memória no PlanoServico. Chamadas subsequentes (como filtros, seleção nos modais de cadastro e edição) reutilizam esse cache instantaneamente.
   - **Invalidação via `refresh = true`:** O botão `Recarregar` já existente é responsável por atualizar o cache e sempre busca os planos na API (através do `refresh = true`).
     garantindo a atualização do cache sob demanda após mutações nos planos (CRUD).
   - **Decisão e contexto:** A decisão considera que a lista de planos é pequena e raramente atualizável, sendo utilizada como dado de referência por outras funcionalidades 
-    e páginas futuras do sistema (filtros, cadastro, edição etc.). A implementação foi feita para demonstrar a minha capacidade de decisões arquiteturais orientadas ao contexto, reconhecendo que, para a escala atual, não há ganho de performance e os planos poderiam ser obtidos por outras chamadas à API diretamente sem maiores problemas.
-    Além de que tudo foi implementado em poucas linhas, com centralização de controle apenas no `PlanoServico`. Todo o resto da aplicação chama o serviço normalmente.
+    e páginas futuras do sistema (filtros, cadastro, edição etc.). A implementação foi feita unicamente para demonstrar a minha capacidade de decisões arquiteturais orientadas ao contexto e experiência prévia com cache, reconhecendo que, para a escala atual, não  há ganho de performance e os planos poderiam ser obtidos por outras chamadas à API diretamente sem maiores problemas. 
+    Decidi este caminho pela baixa complexidade de implementação, poucas linhas alteradas apenas no `PlanoServico`. Todo o resto da aplicação chama o serviço normalmente.
 
 ### 2.5 O que ficou de fora
 
